@@ -8,7 +8,7 @@ memcached_stats.pl
 
 =head1 SYNOPSIS
 
-memcached_stats.pl memcached.example.com 11211 cmd_get
+memcached_stats.pl example.com:11211 30 cmd_get cmd_set
 
 =head1 DESCRIPTION
 
@@ -16,35 +16,51 @@ memcached の stats, stats settings の値を取得する
 
 =cut
 
+use Fcntl;
 use constant {
-    TIMEOUT                => 5,
     DEFAULT_MEMCACHED_PORT => 11211,
+    DEFAULT_CACHE_SEC      => 0,
+    REQUEST_TIMEOUT        => 5,
+    CACHE_DIR              => '/tmp',
+    CACHE_FILE_FORMAT      => 'memcached_stats_%s.txt',
 };
 
-my ($host, $port, @keys) = @ARGV;
-exit if not $host or not @keys;
+my ($address, $cache_sec, @keys) = @ARGV;
+exit if not $address or not @keys;
 
-my %stats = get_memcached_stats($host, $port);
+my %stats = get_memcached_stats($address, $cache_sec);
 print join ' ', (map {defined $_ ? $_ : ''} @stats{@keys});
 exit;
 
 sub get_memcached_stats {
-    my ($host, $port) = @_;
-    return if not $host;
+    my ($address, $cache_sec) = @_;
+    return if not $address;
 
-    $port = DEFAULT_MEMCACHED_PORT if not defined $port;
+    my ($host, $port) = split /:/, $address;
+    $port      ||= DEFAULT_MEMCACHED_PORT;
+    $cache_sec ||= DEFAULT_CACHE_SEC;
 
     my $memcached_stats;
-    eval {
+    my $cache_file = sprintf '%s/'.CACHE_FILE_FORMAT, CACHE_DIR, $address;
+    if (-e $cache_file) {
+        my $mtime = (stat $cache_file)[9];
+        if ($cache_sec >= time - $mtime) {
+            sysopen(my $fh, $cache_file, O_RDONLY) or die $!;
+            $memcached_stats = do {local $/; <$fh>};
+            close $fh;
+        }
+    }
+    if (not $memcached_stats) {
         my $command = sprintf(
             q/echo -ne 'stats settings\r\nstats\r\nquit' | nc -w %d %s %s/,
-            TIMEOUT, $host, $port,
+            REQUEST_TIMEOUT, $host, $port,
         );
         $memcached_stats = qx/$command/;
-    };
-    if ($@) {
-        warn $@;
-        return;
+        if ($cache_sec) {
+            sysopen(my $fh, $cache_file, O_WRONLY|O_CREAT|O_TRUNC) or die $!;
+            print $fh $memcached_stats;
+            close $fh;
+        }
     }
 
     my %stats;
