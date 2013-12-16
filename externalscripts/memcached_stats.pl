@@ -12,7 +12,7 @@ memcached_stats.pl memcached.example.com 11211 cmd_get
 
 =head1 DESCRIPTION
 
-memcached ¤Î stats, stats settings ¤ò¼èÆÀ¤¹¤ë
+memcached ã® stats, stats settings ã®å€¤ã‚’å–å¾—ã™ã‚‹
 
 =cut
 
