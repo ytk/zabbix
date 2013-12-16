@@ -20,10 +20,10 @@ use Fcntl;
 
 use constant {
     DEFAULT_MEMCACHED_PORT => 11211,
-    DEFAULT_CACHE_SEC      => 0,                        # 取得結果をキャッシュする時間(秒)
-    REQUEST_TIMEOUT        => 5,                        # 取得時のタイムアウト
-    CACHE_DIR              => '/tmp',                   # キャッシュファイルの保存先ディレクトリ
-    CACHE_FILE_NAME_FORMAT => 'memcached_stats_%s.txt', # キャッシュファイル名のフォーマット
+    DEFAULT_CACHE_SEC      => 0,                           # 取得結果をキャッシュする時間(秒)
+    REQUEST_TIMEOUT        => 5,                           # 取得時のタイムアウト
+    CACHE_DIR              => '/tmp',                      # キャッシュファイルの保存先ディレクトリ
+    CACHE_FILE_NAME_FORMAT => 'memcached_stats_%s:%s.txt', # キャッシュファイル名のフォーマット
 };
 
 my ($address, $cache_sec, @keys) = @ARGV;
@@ -43,7 +43,7 @@ sub get_memcached_stats {
     $cache_sec ||= DEFAULT_CACHE_SEC;
 
     my $memcached_stats;
-    my $cache_file = sprintf '%s/'.CACHE_FILE_NAME_FORMAT, CACHE_DIR, $address;
+    my $cache_file = sprintf '%s/'.CACHE_FILE_NAME_FORMAT, CACHE_DIR, $host, $port;
     if ($cache_sec and -e $cache_file) {
         my $mtime = (stat $cache_file)[9];
         if ($cache_sec >= time - $mtime) {
