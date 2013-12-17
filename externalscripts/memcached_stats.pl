@@ -26,14 +26,17 @@ use constant {
     CACHE_FILE_NAME_FORMAT => 'memcached_stats_%s:%s.txt', # キャッシュファイル名のフォーマット
 };
 
-my ($address, $cache_sec, @keys) = @ARGV;
-exit if not $address or not @keys;
+main(@ARGV) if not caller(0);
 
-my %stats = get_memcached_stats($address, $cache_sec);
-print join ' ', (map {defined $_ ? $_ : ''} @stats{@keys});
-exit;
+sub main {
+    my ($address, $cache_sec, @keys) = @_;
+    return if not $address or not @keys;
 
-# memcached の stats 情報を hash で返す
+    my %stats = get_memcached_stats($address, $cache_sec);
+    print join ' ', (map {defined $_ ? $_ : ''} @stats{@keys});
+    return;
+}
+
 sub get_memcached_stats {
     my ($address, $cache_sec) = @_;
     return if not $address;
